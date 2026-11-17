@@ -1,11 +1,39 @@
-const manifest = [
-  "https://warez.la/player_api.php?username=336813&password=458453",
-  "https://starplustv.site/player_api.php?username=69754974281040&password=247129511903",
-  "http://138.255.102.3:25461/player_api.php?username=FOXSPORTS1HDsd&password=RRZKamZw9a",
-  "http://7go.xyz:8080/player_api.php?username=15junior&password=as1266375",
-  "http://6oclock.xyz/player_api.php?username=oVTsSvYjZu&password=cAXDNm9LY9",
-  "https://mainsrv.contentgftp.xyz/player_api.php?username=Geraldo&password=12345678",
-  "http://iptv.nextnet.krd:25461/get.php?username=nextnet&password=3738",
-];
+const fs = require("fs");
+const path = require("path");
+
+// Subscriber URLs carry credentials, so they live in an untracked file
+// (see .gitignore) or a path supplied through XTREAM_MANIFEST.
+const manifestPath =
+  process.env.XTREAM_MANIFEST || path.join(__dirname, "manifest.local.json");
+
+const CREDENTIAL_PARAMS = ["username", "password"];
+
+function loadManifest(file) {
+  if (!fs.existsSync(file)) return [];
+  const entries = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (!Array.isArray(entries)) {
+    throw new Error("Manifest must be a JSON array of playlist URLs");
+  }
+  return entries;
+}
+
+function withoutCredentials(rawUrl) {
+  let url;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  url.username = "";
+  url.password = "";
+  for (const key of [...url.searchParams.keys()]) {
+    if (CREDENTIAL_PARAMS.includes(key.toLowerCase())) url.searchParams.delete(key);
+  }
+  return url.toString();
+}
+
+const manifest = loadManifest(manifestPath)
+  .map(withoutCredentials)
+  .filter((entry) => entry !== null);
 
 console.log(manifest);
